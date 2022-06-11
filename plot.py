@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+import sys
 
 # plotagem com plotly
 def plot_with_plotly(x,y,z):
@@ -16,16 +17,15 @@ def plot_with_plotly(x,y,z):
     fig.show()
 
 # plotagem com matplotlib
-def plot_with_matplotlib(x,y,z):
+def plot_with_matplotlib(x,y,z, figname):
     fig = plt.figure(figsize=(21,7))
     ax = fig.add_subplot(projection='3d')
     ax.contour3D(x,y,z,100)
+    # ax.plot_surface(x,y,z)
+    plt.savefig(fname=figname)
     plt.show()
 
-if __name__=='__main__':
-    # preparações
-    r1,r2,R1,R2,t,T = 0.05, 0.08, 0.03, 0.11, np.deg2rad(18), np.deg2rad(40)
-    arr = np.loadtxt('T.txt')
+def prep(arr):
     arr = np.hstack((np.flip(arr,axis=1),arr))
     m,n = arr.shape
 
@@ -34,5 +34,24 @@ if __name__=='__main__':
     R,P = np.meshgrid(r,p)
     X = R*np.cos(P)
     Y = R*np.sin(P)
+    return X,Y,arr
 
-    plot_with_matplotlib(X,Y,arr.T)
+if __name__=='__main__':
+    # preparações
+    r1,r2,R1,R2,t,T = 0.05, 0.08, 0.03, 0.11, np.deg2rad(18), np.deg2rad(40)
+
+    if len(sys.argv) == 1:
+        file = 'mesh.txt'
+        fig_name = file[:-4] + ' - plot'
+        arr = np.loadtxt(file)
+        X,Y,arr = prep(arr)
+        plot_with_matplotlib(X,Y,arr.T, fig_name)
+    else:
+        for file in sys.argv[1:]:
+            fig_name = file[:-4] + ' - plot'
+            arr = np.loadtxt(file)
+            X,Y,arr = prep(arr)
+            plot_with_matplotlib(X,Y,arr.T, fig_name) 
+
+    
+

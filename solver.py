@@ -51,8 +51,12 @@ class Mesh:
         if (i >= self._v) and (i <= self._t) and (j <= self._w):
             if (i == self._v):
                 out = 31
+                if (j == self._w):
+                    out = 310
             elif (i == self._t):
                 out = 51
+                if (j == self._w):
+                    out = 510
             elif (j == self._w):
                 out = 41
             else:
@@ -61,6 +65,8 @@ class Mesh:
             out = 10
         elif (i == self._m):
             out = 60
+            if j == self._n:
+                out = 600
         elif (j == self._n):
             out = 20
         return out        
@@ -96,7 +102,7 @@ class Mesh:
         
         return kernel
 
-    def _full_iter(self, w=1.75, method='gauss_seidel', immutable=True, add=None):
+    def _full_iter(self, w=1.75, method='gauss_seidel', immutable=True, add=None, debug=False):
 
         # iteração do algorítmo G-S
         np.copyto(self._V_old,self._V)
@@ -125,8 +131,13 @@ class Mesh:
                 elif method == 'jacobi':
                     slice  = self._V_old[i-c:i+b+1,j-e:j+d+1]
                 new_val = np.sum(slice*kernel) + cst
-                print(self._V)
-                input()
+                # if flag:
+                #     print(scaler,add[scale_i*(i-1)][scale_j*(j-1)],slice,kernel,cst,np.sum(slice*kernel),new_val,sep='\n')
+                #     input()
+                if debug:
+                    print(self._time, kernel.flatten(), np.sum(kernel))
+                    print(self.V)
+                    input()
                 update = w*new_val + (1-w)*self._V_old[i,j]
                 self._V[i,j] = update
 
@@ -144,11 +155,11 @@ class Mesh:
         else:
             return False
 
-    def run(self, w=1.75, method='gauss_seidel',t_lim=np.inf, immutable=True, add=None):
+    def run(self, w=1.75, method='gauss_seidel',t_lim=np.inf, immutable=True, add=None, debug=False):
         th = 1e-4
         time = timeit.default_timer()
         while self._get_error(th, t_lim):
-            self._full_iter(w=w, method=method, immutable=immutable, add=add)
+            self._full_iter(w=w, method=method, immutable=immutable, add=add, debug=debug)
             print(f'iterações: {self._time} | erro: {self._error_in_t:.5f} | cronômetro: {(timeit.default_timer() - time):.2f}',end='\r')
             self._time += 1
         print(f'\nconcluido em t = {self._time} ({(timeit.default_timer() - time):.2f}s) e erro {self._error_in_t:.4f}')
