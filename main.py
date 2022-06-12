@@ -110,6 +110,7 @@ def eq_r(key, dr, dp, r, k1, k2):
     return kernel, size, None
 
 def eq_p(key, dr, dp, r, k1, k2):
+
     # 0x > ponto interior
     # 1x > ponto esquerdo
     # 2x > ponto superior
@@ -144,7 +145,7 @@ if __name__ == '__main__':
     arg1 = sys.argv[-1]
 
     r1,r2,R1,R2,t,T,ka,kb,v0 = 0.05, 0.08, 0.03, 0.11, np.deg2rad(18), np.deg2rad(40), 5e-6, 1e-5, 50
-    dr,dp = (R2-R1)/40, T/24
+    dr,dp = (R2-R1)/80, T/48
 
     if arg1.lower() == '-y':
         mesh_0 = Mesh(r1,r2,R1,R2,t,T,ka,kb,v0,dr,dp,eq)
@@ -174,7 +175,52 @@ if __name__ == '__main__':
     Z = (-(Jr**2 + Jp**2)/k)
     np.savetxt('qponto.txt',Z)
 
-    mesh_3 = Mesh(r1,r2,R1,R2,t,T,110,500,25+273,dr,dp,eq_temp, consts=(30+273,25+273))
+    mesh_3 = Mesh(r1,r2,R1,R2,t,T,110,500,25+273,2*dr,2*dp,eq_temp, consts=(30+273,25+273))
     mesh_3.run(add = -Z, immutable=False)
-    T = mesh_3.V
-    np.savetxt('T.txt',T)
+    Temp = mesh_3.V
+    np.savetxt('T.txt',Temp)
+
+    mesh_4 = Mesh(r1,r2,R1,R2,t,T,110,500,0,2*dr,2*dp,eq_r, initial_grid=Temp)
+    mesh_4.run(w=1, method='jacobi', t_lim=1, immutable=False)
+    Qr = mesh_4.V
+    np.savetxt('Qr.txt',Qr)
+
+    mesh_5 = Mesh(r1,r2,R1,R2,t,T,110,500,0,2*dr,2*dp,eq_p, initial_grid=Temp)
+    mesh_5.run(w=1, method='jacobi', t_lim=1, immutable=False)
+    Qp = mesh_5.V
+    np.savetxt('Qp.txt',Qp)
+
+    # J na direção radial em r = Rx: Jr_Rx
+    Jr_R1 = Jr[ 0,:]
+    Jr_R2 = Jr[-1,:]
+    Qr_R2 = Qr[-1,:]
+
+    # integral pela regra do trapézio composta com h = R1*dp
+    I_R1 = (np.sum(Jr_R1) - Jr_R1[0]/2 - Jr_R1[-1]/2)*R1*dp
+
+    # erro estimado da integração
+    erro_I_R1 = -1/12*(R1*dp)**3*(len(Jr_R1)-1)*np.min([(Jr_R1[2] - 2*Jr_R1[1] + Jr_R1[0])/(R1*dp)] + [(Jr_R1[i+1] - 2*Jr_R1[i] + Jr_R1[i-1])/(R1*dp) for i in range(1,len(Jr_R1) - 1)] + [(Jr_R1[-1] - 2*Jr_R1[-2] + Jr_R1[-3])/(R1*dp)])
+
+    # integral pela regra do trapézio composta com h = R2*dp
+    I_R2 = (np.sum(Jr_R2) - Jr_R2[0]/2 - Jr_R2[-1]/2)*R2*dp
+
+    # erro estimado da integração
+    erro_I_R2 = -1/12*(R2*dp)**3*(len(Jr_R2)-1)*np.min([(Jr_R2[2] - 2*Jr_R2[1] + Jr_R2[0])/(R2*dp)] + [(Jr_R2[i+1] - 2*Jr_R2[i] + Jr_R2[i-1])/(R2*dp) for i in range(1,len(Jr_R2) - 1)] + [(Jr_R2[-1] - 2*Jr_R2[-2] + Jr_R2[-3])/(R2*dp)])
+
+    print(f'Corrente I calculada em r = R1: {I_R1:.2e} com erro estimado de {erro_I_R1:.3e}')
+    print(f'Corrente I calculada em r = R2; {I_R2:.2e} com erro estimado de {erro_I_R2:.3e}')
+
+    print(f'Resistência média avaliada com I calculado em r = R1: {100/I_R1} e com r = R2: {100/I_R2}')
+
+    # integral pela regra do trapézio composta com h = R2*dp
+    q_conv = (np.sum(Qr_R2) - Qr_R2[0]/2 - Qr_R2[-1]/2)*R2*dp
+
+    # erro estimado da integração
+    erro_q = -1/12*(R2*dp)**3*(len(Qr_R2)-1)*np.min([(Qr_R2[2] - 2*Qr_R2[1] + Qr_R2[0])/(R2*dp)] + [(Qr_R2[i+1] - 2*Qr_R2[i] + Qr_R2[i-1])/(R2*dp) for i in range(1,len(Qr_R2) - 1)] + [(Qr_R2[-1] - 2*Qr_R2[-2] + Qr_R2[-3])/(R2*dp)])
+
+    print(f'quantidade de calor pela parade de convecção: {q_conv:.2e} com erro estimado de {erro_q:.3e}')
+
+
+
+
+    

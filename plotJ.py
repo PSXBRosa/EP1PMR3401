@@ -28,6 +28,7 @@ def main():
     ax0.quiver(x,y,Jx,Jy)
     ax = fig.add_subplot(1,2,2,projection='3d')
     ax.contour3D(x,y,Z.T,200)
+    plt.savefig('J e Qponto')
     # ax.plot_surface(x,y,-Z.T)
 
     plt.show()
